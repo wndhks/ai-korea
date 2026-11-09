@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AI 윤리 시뮬레이터 : Ethics Lab</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stat-bar {
+            transition: width 0.5s ease-in-out, background-color 0.3s ease;
+        }
+        @media print {
+            header, footer, #reset-btn, .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .glass-card {
+                background: white !important;
+                color: black !important;
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+            }
+            .print-black {
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight text-white flex items-center gap-2">
+                        ETHICS LAB
+                    </h1>
+                    <p class="text-xs text-slate-400">AI 윤리 의사결정 및 수업 성찰 보고서 시뮬레이터</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button id="reset-btn" onclick="restartGame()" class="hidden text-xs text-slate-400 hover:text-white flex items-center gap-1 transition">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 처음부터 다시
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-1 w-full flex flex-col justify-center">
+
+        <!-- 1. Start Screen -->
+        <section id="start-screen" class="glass-card rounded-2xl p-8 md:p-12 text-center max-w-3xl mx-auto shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl"></div>
+
+            <div class="inline-flex items-center justify-center p-3 bg-indigo-500/10 rounded-2xl text-indigo-400 mb-4 border border-indigo-500/20">
+                <i data-lucide="graduation-cap" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-3 leading-tight">
+                AI 윤리 워크숍 : 사회적 구현과 딜레마
+            </h2>
+            <p class="text-slate-300 mb-6 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+                당신은 <strong class="text-indigo-400">국가 AI 윤리위원회 의장</strong>으로 임명되었습니다.<br>
+                실제 사회에서 직면하는 AI 윤리 문제에 대한 정책 결정을 내리고, 
+                자신의 윤리적 가치관을 분석한 <strong class="text-indigo-300">수업 제출용 보고서</strong>를 작성해 보세요.
+            </p>
+
+            <!-- Student Info Form -->
+            <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 text-left mb-6 max-w-md mx-auto space-y-3">
+                <div class="text-xs font-semibold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="user-check" class="w-4 h-4"></i> 학생 정보 입력 (보고서 제출용)
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">소속 학교 / 학과</label>
+                        <input type="text" id="student-school" placeholder="예: 한국고등학교 / AI학과" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">학번 및 이름</label>
+                        <input type="text" id="student-name" placeholder="예: 2학년 3반 홍길동" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 text-left text-xs">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <div class="text-indigo-400 font-semibold mb-1 flex items-center gap-1">
+                        <i data-lucide="scale" class="w-3.5 h-3.5"></i> 공정성
+                    </div>
+                    <p class="text-slate-400">차별 및 편향 방지</p>
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <div class="text-emerald-400 font-semibold mb-1 flex items-center gap-1">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 안전성
+                    </div>
+                    <p class="text-slate-400">보안 및 프라이버시</p>
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <div class="text-amber-400 font-semibold mb-1 flex items-center gap-1">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i> 혁신성
+                    </div>
+                    <p class="text-slate-400">기술 성장 및 효율</p>
+                </div>
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                    <div class="text-cyan-400 font-semibold mb-1 flex items-center gap-1">
+                        <i data-lucide="users" class="w-3.5 h-3.5"></i> 신뢰도
+                    </div>
+                    <p class="text-slate-400">대중 수용성</p>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 mx-auto">
+                시뮬레이션 시작하기 <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+        </section>
+
+        <!-- 2. Game View Screen -->
+        <section id="game-screen" class="hidden space-y-6">
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="glass-card p-4 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center text-xs font-semibold mb-2">
+                        <span class="text-indigo-400 flex items-center gap-1.5"><i data-lucide="scale" class="w-4 h-4"></i> 공정성</span>
+                        <span id="val-fairness" class="text-slate-200">50%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-fairness" class="stat-bar bg-indigo-500 h-full w-[50%]"></div>
+                    </div>
+                </div>
+                <div class="glass-card p-4 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center text-xs font-semibold mb-2">
+                        <span class="text-emerald-400 flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4"></i> 안전성</span>
+                        <span id="val-safety" class="text-slate-200">50%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-safety" class="stat-bar bg-emerald-500 h-full w-[50%]"></div>
+                    </div>
+                </div>
+                <div class="glass-card p-4 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center text-xs font-semibold mb-2">
+                        <span class="text-amber-400 flex items-center gap-1.5"><i data-lucide="zap" class="w-4 h-4"></i> 혁신성</span>
+                        <span id="val-innovation" class="text-slate-200">50%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-innovation" class="stat-bar bg-amber-500 h-full w-[50%]"></div>
+                    </div>
+                </div>
+                <div class="glass-card p-4 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center text-xs font-semibold mb-2">
+                        <span class="text-cyan-400 flex items-center gap-1.5"><i data-lucide="users" class="w-4 h-4"></i> 신뢰도</span>
+                        <span id="val-trust" class="text-slate-200">50%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="bar-trust" class="stat-bar bg-cyan-500 h-full w-[50%]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenario Card -->
+            <div class="glass-card rounded-2xl p-6 md:p-8 shadow-xl relative">
+                <div class="flex justify-between items-center text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-3">
+                    <span id="scenario-category">카테고리</span>
+                    <span id="scenario-progress" class="bg-slate-800 px-3 py-1 rounded-full text-slate-300">Case 1 / 5</span>
+                </div>
+
+                <h3 id="scenario-title" class="text-xl md:text-2xl font-bold text-white mb-3">
+                    시나리오 제목
+                </h3>
+
+                <p id="scenario-desc" class="text-slate-300 text-sm md:text-base leading-relaxed mb-6">
+                    시나리오 상세 설명이 들어갑니다.
+                </p>
+
+                <!-- Stakeholder Opinions -->
+                <div class="bg-slate-900/60 rounded-xl p-4 mb-6 border border-slate-800/80 space-y-2">
+                    <div class="text-xs font-semibold text-slate-400 mb-1 flex items-center gap-1">
+                        <i data-lucide="message-square" class="w-3.5 h-3.5"></i> 이해관계자 자문 보고
+                    </div>
+                    <div id="stakeholder-opinions" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-300">
+                        <!-- 동적으로 주입 -->
+                    </div>
+                </div>
+
+                <!-- Choices -->
+                <div class="space-y-3" id="choices-container">
+                    <!-- Choice Buttons Dynamic insertion -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Result Screen -->
+        <section id="result-screen" class="hidden space-y-6">
+            <div class="glass-card rounded-2xl p-8 max-w-3xl mx-auto shadow-2xl relative overflow-hidden" id="report-printable-area">
+                
+                <!-- Print Header (Visible only when printing) -->
+                <div class="hidden print:block mb-6 border-b pb-4">
+                    <h1 class="text-2xl font-bold">AI 윤리 시뮬레이션 및 성찰 보고서</h1>
+                    <p id="print-student-info" class="text-sm text-gray-600 mt-1">소속: - | 학생명: -</p>
+                </div>
+
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center p-3 bg-indigo-500/10 rounded-full text-indigo-400 mb-3 border border-indigo-500/20 no-print">
+                        <i data-lucide="award" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-1 print-black">AI 윤리 의사결정 결과 보고서</h2>
+                    <p class="text-slate-400 text-sm print-black">당신의 선택 기록과 AI 윤리관 분석 결과입니다.</p>
+                </div>
+
+                <!-- User Persona Profile -->
+                <div class="bg-slate-900/80 p-6 rounded-xl border border-indigo-500/30 mb-6 text-left">
+                    <div class="text-xs text-indigo-400 font-semibold mb-1 uppercase tracking-wider">Ethical Archetype</div>
+                    <h3 id="archetype-title" class="text-2xl font-bold text-white mb-2 print-black">유형 분석 중...</h3>
+                    <p id="archetype-desc" class="text-slate-300 text-sm leading-relaxed mb-4 print-black">
+                        상세 설명이 표출됩니다.
+                    </p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3 border-t border-slate-800 text-xs">
+                        <div><span class="text-slate-500">공정성:</span> <span id="final-fairness" class="font-bold text-indigo-400">0</span></div>
+                        <div><span class="text-slate-500">안전성:</span> <span id="final-safety" class="font-bold text-emerald-400">0</span></div>
+                        <div><span class="text-slate-500">혁신성:</span> <span id="final-innovation" class="font-bold text-amber-400">0</span></div>
+                        <div><span class="text-slate-500">신뢰도:</span> <span id="final-trust" class="font-bold text-cyan-400">0</span></div>
+                    </div>
+                </div>
+
+                <!-- LLM Generated Comprehensive Evaluation Report -->
+                <div class="bg-slate-900/60 p-6 rounded-xl border border-slate-800 text-left mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-indigo-400 no-print"></i>
+                            <h4 class="font-bold text-slate-200 text-sm md:text-base print-black">Gemini AI 윤리 지도 교수 총평</h4>
+                        </div>
+                        <span id="ai-loading" class="hidden text-xs text-indigo-400 animate-pulse flex items-center gap-1 no-print">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> 분석 보고서 작성 중...
+                        </span>
+                    </div>
+                    <div id="ai-report-content" class="text-xs md:text-sm text-slate-300 space-y-2 leading-relaxed print-black">
+                        아래 버튼을 누르면 당신의 결정 기록을 바탕으로 AI 지도 교수의 심층 평가서가 생성됩니다.
+                    </div>
+                    <button id="generate-ai-btn" onclick="generateAIReport()" class="mt-4 px-4 py-2 bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5 no-print">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI 피드백 및 학술 총평 생성하기
+                    </button>
+                </div>
+
+                <!-- Student Reflection / Ethics Pledge Section -->
+                <div class="bg-slate-900/60 p-6 rounded-xl border border-slate-800 text-left mb-6">
+                    <h4 class="font-bold text-slate-200 text-sm md:text-base mb-2 flex items-center gap-2 print-black">
+                        <i data-lucide="edit-3" class="w-4 h-4 text-emerald-400 no-print"></i> 학생 성찰 : 나의 AI 윤리 선언문 (Pledge)
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-3 no-print">
+                        이번 시뮬레이션을 통해 느낀 점을 바탕으로, 앞으로 AI 개발자/사용자로서 지켜야 할 나만의 윤리 원칙 1가지를 작성해 보세요.
+                    </p>
+                    <textarea id="student-pledge" rows="3" placeholder="예: 나는 편향된 데이터로 인해 누군가 불이익을 받지 않도록 AI 시스템의 공정성 검증 과정을 항상 소중히 생각하겠습니다." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs md:text-sm text-white focus:outline-none focus:border-indigo-500 print:bg-transparent print:border-none print:p-0 print:text-black"></textarea>
+                </div>
+
+                <!-- Class Discussion Prompts -->
+                <div class="bg-slate-900/40 p-5 rounded-xl border border-slate-800 text-left mb-6 no-print">
+                    <h4 class="font-bold text-indigo-300 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i data-lucide="messages-square" class="w-4 h-4"></i> 모둠 토론 및 생각해볼 문제
+                    </h4>
+                    <ul class="list-disc list-inside text-xs text-slate-300 space-y-1">
+                        <li>내가 선택한 정책 결정으로 인해 가장 크게 손해를 본 이해관계자는 누구인가요?</li>
+                        <li>혁신성과 안전성이 상충할 때, 국가가 개입해야 하는 적절한 수준은 어디까지일까요?</li>
+                    </ul>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3 justify-center no-print">
+                    <button onclick="window.print()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4"></i> 보고서 인쇄 / PDF 저장
+                    </button>
+                    <button onclick="copyResults()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i> 결과 텍스트 복사
+                    </button>
+                    <button onclick="restartGame()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-sm transition">
+                        다시 시도하기
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 text-white px-4 py-3 rounded-xl border border-slate-700 shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 text-xs md:text-sm flex items-center gap-2 z-50">
+        <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
+        <span id="toast-message">알림 메시지</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 py-4 text-center text-xs text-slate-500">
+        <p>© 2026 AI Ethics Laboratory · AI 윤리 딜레마 시뮬레이터</p>
+    </footer>
+
+    <!-- Game Logic JavaScript -->
+    <script>
+        lucide.createIcons();
+
+        let studentInfo = { school: "", name: "" };
+        let stats = { fairness: 50, safety: 50, innovation: 50, trust: 50 };
+        let currentScenarioIndex = 0;
+        let userChoices = [];
+
+        const scenarios = [
+            {
+                category: "자율주행 & 인간 생명",
+                title: "자율주행차의 불가피한 사고 알고리즘",
+                desc: "국가 자율주행 표준 규정 수립 중입니다. 갑작스러운 브레이크 파열 상황에서 AI 보행자 여러 명을 치거나, 차선을 틀어 운전자를 희생시켜야 하는 딜레마에 직면했습니다. 제조사와 시민단체의 의견이 팽팽합니다.",
+                stakeholders: {
+                    tech: "제조사: '운전자 보호 우선 알고리즘이 없으면 차량 판매 및 보급이 불가능합니다.'",
+                    ngo: "시민단체: '공공 안전이 우선이며 보행자 수에 따른 피해 최소화 원칙이 법제화되어야 합니다.'"
+                },
+                choices: [
+                    {
+                        text: "공공 피해 최소화 원칙 (보행자 보호 우선 및 피해자 수 최소화 선택 규정)",
+                        effects: { fairness: +15, safety: +10, innovation: -10, trust: +5 },
+                        summary: "보행자 안전 우선 및 피해 최소화 원칙 도입"
+                    },
+                    {
+                        text: "탑승자 우선 보호 원칙 (차량 구매자의 생명권 최우선 보장)",
+                        effects: { fairness: -10, safety: -5, innovation: +15, trust: -10 },
+                        summary: "탑승자 안전 최우선 정책 채택"
+                    },
+                    {
+                        text: "무작위 선택 / 제3의 무작위화 알고리즘 (특정 대상을 가치 평가하지 않음)",
+                        effects: { fairness: +5, safety: -10, innovation: +5, trust: -15 },
+                        summary: "알고리즘적 가치판단 유예 (랜덤 대처)"
+                    }
+                ]
+            },
+            {
+                category: "채용 및 사회적 차별",
+                title: "기업용 AI 채용 알고리즘의 편향성",
+                desc: "대기업에서 도입한 AI 채용 시스템이 기존 고용 데이터를 학습하여 여성 및 특정 지역 출신 지원자에게 낮은 점수를 부여하는 편향을 보였습니다. 개발사는 '성과가 검증된 과거 패턴'이라고 주장합니다.",
+                stakeholders: {
+                    tech: "개발사: '기존 우수한 임원의 공통점을 도출한 결과이며, 강제 조정 시 예측 정확도가 떨어집니다.'",
+                    ngo: "노동위: '과거의 구조적 차별을 AI가 재생산하고 있습니다. 즉각 편향 교정을 의무화해야 합니다.'"
+                },
+                choices: [
+                    {
+                        text: "성별·출신 요소 강제 마스킹 및 공정성 가중치 알고리즘 의무화",
+                        effects: { fairness: +20, safety: +5, innovation: -5, trust: +10 },
+                        summary: "AI 편향 제거 알고리즘 적용 의무화"
+                    },
+                    {
+                        text: "기업 자율 보정권 부여 (효율성과 정확도 유지를 위해 개입 최소화)",
+                        effects: { fairness: -15, safety: -5, innovation: +15, trust: -10 },
+                        summary: "기업 자율성에 맡겨 효율성 제고"
+                    },
+                    {
+                        text: "AI 채용 도구 전면 금지 및 인간 면접관 전담 복귀",
+                        effects: { fairness: +10, safety: +10, innovation: -20, trust: +5 },
+                        summary: "채용 영역에서 AI 활용 전면 규제"
+                    }
+                ]
+            },
+            {
+                category: "의료 AI & 설명가능성 (XAI)",
+                title: "초고성능 딥러닝 암 진단 AI의 '블랙박스' 문제",
+                desc: "기존 전문의보다 암 진단 정확도가 15% 높은 AI 모델이 개발되었습니다. 하지만 딥러닝 특성상 진단 근거를 인과적으로 설명할 수 없는 '블랙박스' 문제입니다. 오진 발생 시 책임 소재가 불분명합니다.",
+                stakeholders: {
+                    tech: "의료진: '설명 불가능해도 생존율을 획기적으로 올릴 수 있다면 보충 진단용으로 당장 도입해야 합니다.'",
+                    ngo: "법률가: '설명 불가능한 의료 행위는 오진 시 환자의 알 권리와 법적 구제권을 침해합니다.'"
+                },
+                choices: [
+                    {
+                        text: "설명 가능한 AI(XAI) 기술이 완전 입증될 때까지 승인 유예",
+                        effects: { fairness: +5, safety: +20, innovation: -15, trust: -5 },
+                        summary: "안전성과 설명가능성 검증 전까지 보수적 접근"
+                    },
+                    {
+                        text: "의사 판단 보조용 조건부 즉시 승인 (최종 책임은 담당 의사가 부담)",
+                        effects: { fairness: 0, safety: +5, innovation: +15, trust: +10 },
+                        summary: "의사의 임상 보조용으로 빠른 현장 도입"
+                    },
+                    {
+                        text: "전면 완전 자율 진단 허용 (환자 동의 하에 빠른 진단 진행)",
+                        effects: { fairness: -10, safety: -15, innovation: +20, trust: -10 },
+                        summary: "AI 진단 전면 자율화 및 빠른 기술 상용화"
+                    }
+                ]
+            },
+            {
+                category: "딥페이크 & 안면인식 기술",
+                title: "범죄 예방 안면인식 CCTV 및 딥페이크 감시",
+                desc: "치안 강화를 위해 전국 도심에 실시간 AI 안면인식 및 행동분석 카메라를 도입하려 합니다. 범죄율을 40% 낮출 수 있지만, 시민단체는 대중 감시국가로의 전락과 개인정보 침해를 우려합니다.",
+                stakeholders: {
+                    tech: "경찰청: '테러 및 상습 범죄자 추적을 위해 필수적이며 치안 복지에 크게 기여합니다.'",
+                    ngo: "인권위: '모든 시민이 상시 감시 대상이 되며 사생활권의 근본적 침해입니다.'"
+                },
+                choices: [
+                    {
+                        text: "공공장소 안면인식 AI 감시 전면 금지 (사생활 보호 최우선)",
+                        effects: { fairness: +10, safety: -10, innovation: -10, trust: +15 },
+                        summary: "시민 프라이버시 보호를 위해 안면인식 금지"
+                    },
+                    {
+                        text: "중범죄 발생 시 법원 영장을 통한 제한적 감시 허용",
+                        effects: { fairness: +5, safety: +10, innovation: +5, trust: +10 },
+                        summary: "법적 통제 하에 균형 잡힌 제한적 도입"
+                    },
+                    {
+                        text: "국가 안보 및 치안 강화를 위해 전면 실시간 도입",
+                        effects: { fairness: -15, safety: +20, innovation: +15, trust: -15 },
+                        summary: "치안 및 안전 확보 우선 전면 도입"
+                    }
+                ]
+            },
+            {
+                category: "생성형 AI & 저작권",
+                title: "생성형 AI의 학습 데이터 무단 사용과 창작자 권리",
+                desc: "거대언어모델(LLM) 및 이미지 생성 AI가 전 세계 창작자들의 저작물을 허가 없이 학습하여 막대한 수익을 창출하고 있습니다. 개발사는 '공정 이용(Fair Use)'을 주장합니다.",
+                stakeholders: {
+                    tech: "AI 기업: '인터넷의 공개 정보 학습을 막으면 국내 AI 산업 경쟁력이 완전히 고사합니다.'",
+                    ngo: "창작자 연대: '무단 도용된 데이터로 만든 AI가 창작자들의 설 자리를 빼앗고 있습니다.'"
+                },
+                choices: [
+                    {
+                        text: "학습 데이터 출처 공개 의무화 및 창작자 보상 기금 출범 의무화",
+                        effects: { fairness: +20, safety: +5, innovation: -10, trust: +15 },
+                        summary: "저작권자 권리 보호 및 수익 공유 의무화"
+                    },
+                    {
+                        text: "공공재적 학습 인정 (공정 이용 인정하여 데이터 규제 철폐)",
+                        effects: { fairness: -15, safety: -5, innovation: +20, trust: -10 },
+                        summary: "AI 기술 혁신 촉진을 위한 학습 데이터 자유화"
+                    },
+                    {
+                        text: "사전 동의(Opt-in) 데이터로만 학습 허용 (동의 없는 데이터 삭제)",
+                        effects: { fairness: +15, safety: +10, innovation: -20, trust: +5 },
+                        summary: "엄격한 사전 동의 기반 데이터 구축 규제"
+                    }
+                ]
+            }
+        ];
+
+        function startGame() {
+            const schoolInput = document.getElementById('student-school').value.trim();
+            const nameInput = document.getElementById('student-name').value.trim();
+
+            studentInfo.school = schoolInput || "미지정 학교/학과";
+            studentInfo.name = nameInput || "익명 학생";
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('reset-btn').classList.remove('hidden');
+            currentScenarioIndex = 0;
+            stats = { fairness: 50, safety: 50, innovation: 50, trust: 50 };
+            userChoices = [];
+            updateUI();
+            renderScenario();
+        }
+
+        function restartGame() {
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('reset-btn').classList.add('hidden');
+        }
+
+        function updateUI() {
+            for (let key in stats) {
+                stats[key] = Math.max(0, Math.min(100, stats[key]));
+            }
+
+            document.getElementById('val-fairness').innerText = stats.fairness + '%';
+            document.getElementById('bar-fairness').style.width = stats.fairness + '%';
+
+            document.getElementById('val-safety').innerText = stats.safety + '%';
+            document.getElementById('bar-safety').style.width = stats.safety + '%';
+
+            document.getElementById('val-innovation').innerText = stats.innovation + '%';
+            document.getElementById('bar-innovation').style.width = stats.innovation + '%';
+
+            document.getElementById('val-trust').innerText = stats.trust + '%';
+            document.getElementById('bar-trust').style.width = stats.trust + '%';
+        }
+
+        function renderScenario() {
+            const scenario = scenarios[currentScenarioIndex];
+            document.getElementById('scenario-category').innerText = scenario.category;
+            document.getElementById('scenario-progress').innerText = `Case ${currentScenarioIndex + 1} / ${scenarios.length}`;
+            document.getElementById('scenario-title').innerText = scenario.title;
+            document.getElementById('scenario-desc').innerText = scenario.desc;
+
+            const stakeholderBox = document.getElementById('stakeholder-opinions');
+            stakeholderBox.innerHTML = `
+                <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800"><span class="text-indigo-400 font-semibold">산업계:</span> ${scenario.stakeholders.tech}</div>
+                <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800"><span class="text-purple-400 font-semibold">시민사회:</span> ${scenario.stakeholders.ngo}</div>
+            `;
+
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = '';
+
+            scenario.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 bg-slate-900/80 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-200 group flex items-start gap-3";
+                btn.onclick = () => selectChoice(index);
+                btn.innerHTML = `
+                    <div class="p-2 bg-slate-800 group-hover:bg-indigo-600 group-hover:text-white rounded-lg text-slate-400 transition text-xs font-bold mt-0.5">
+                        0${index + 1}
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-slate-200 group-hover:text-indigo-200 transition">${choice.text}</div>
+                    </div>
+                `;
+                choicesContainer.appendChild(btn);
+            });
+        }
+
+        function selectChoice(choiceIndex) {
+            const scenario = scenarios[currentScenarioIndex];
+            const selected = scenario.choices[choiceIndex];
+
+            stats.fairness += selected.effects.fairness;
+            stats.safety += selected.effects.safety;
+            stats.innovation += selected.effects.innovation;
+            stats.trust += selected.effects.trust;
+
+            userChoices.push({
+                title: scenario.title,
+                choiceSummary: selected.summary
+            });
+
+            updateUI();
+
+            currentScenarioIndex++;
+            if (currentScenarioIndex < scenarios.length) {
+                renderScenario();
+            } else {
+                finishGame();
+            }
+        }
+
+        function finishGame() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            document.getElementById('print-student-info').innerText = `소속: ${studentInfo.school} | 학번/이름: ${studentInfo.name}`;
+
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            document.getElementById('final-fairness').innerText = stats.fairness + '%';
+            document.getElementById('final-safety').innerText = stats.safety + '%';
+            document.getElementById('final-innovation').innerText = stats.innovation + '%';
+            document.getElementById('final-trust').innerText = stats.trust + '%';
+
+            calculateArchetype();
+        }
+
+        function calculateArchetype() {
+            let title = "";
+            let desc = "";
+
+            if (stats.fairness >= 65 && stats.safety >= 65) {
+                title = "🛡️ 원칙주의 AI 인권 수호자 (Principle Guardian)";
+                desc = "당신은 기술 발전보다 인간의 존엄성, 공정성, 사생활 보호를 최우선으로 생각합니다. 위험 요소를 사전에 제거하고 차별 없는 사회적 안전망을 구축하려는 철학을 가지고 있습니다.";
+            } else if (stats.innovation >= 65) {
+                title = "🚀 실용주의 기술 혁신가 (Techno-Pragmatist)";
+                desc = "당신은 AI 기술의 무한한 가능성과 국가 경쟁력 강화를 최우선으로 둡니다. 과도한 규제가 혁신을 저해하는 것을 경계하며, 시장 자율성과 효율성을 신뢰합니다.";
+            } else if (stats.trust >= 60 && stats.fairness >= 50) {
+                title = "🤝 휴머니스틱 사회 조율사 (Social Harmonizer)";
+                desc = "당신은 다양한 이해관계자 간의 갈등을 중재하고 사회적 합의를 이끌어내는 데 뛰어난 윤리적 리더십을 발휘했습니다. 대중의 신뢰와 공공성의 균형을 중시합니다.";
+            } else {
+                title = "⚖️ 리스크 관리 균형가 (Balanced Risk Governance)";
+                desc = "당신은 현실적인 제약 조건 속에서 혁신과 안전, 공정성 사이의 중용을 찾으려 노력했습니다. 신중한 정책 실행을 유도하는 유형입니다.";
+            }
+
+            document.getElementById('archetype-title').innerText = title;
+            document.getElementById('archetype-desc').innerText = desc;
+        }
+
+        function generateAIReport() {
+            const btn = document.getElementById('generate-ai-btn');
+            const loading = document.getElementById('ai-loading');
+            const reportBox = document.getElementById('ai-report-content');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            loading.classList.remove('hidden');
+
+            setTimeout(() => {
+                const entries = [
+                    ['공정성', stats.fairness, '차별 없는 사회와 약자 보호'],
+                    ['안전성', stats.safety, '사고와 위험을 사전에 막는 것'],
+                    ['혁신성', stats.innovation, '기술 발전과 산업 경쟁력'],
+                    ['사회적 신뢰도', stats.trust, '시민과의 신뢰 및 합의']
+                ].sort((a, b) => b[1] - a[1]);
+                const top = entries[0], second = entries[1], low = entries[3];
+                const name = studentInfo.name ? studentInfo.name + ' 학생' : '학생';
+
+                const p1 = `${name}은(는) 총 ${userChoices.length}개의 딜레마에서 ${top[0]}(${top[1]}%)과 ${second[0]}(${second[1]}%)을 가장 중요하게 다룬 의사결정자였습니다. 이는 ${top[2]}을(를) 핵심 가치로 두고 정책을 판단했다는 뜻이며, 정답이 없는 문제에서 자신만의 기준을 세우려 한 점이 돋보입니다.`;
+                const p2 = `다만 ${low[0]}(${low[1]}%) 부분은 상대적으로 양보한 결과입니다. ${low[2]}을(를) 덜 고려한 선택이 현실에서 어떤 부작용이나 반대 의견을 낳을 수 있는지 생각해 보세요. 예를 들어 ${userChoices[0] ? '"' + userChoices[0].title + '"' : '첫 번째 사례'}에서 반대편 이해관계자의 입장에 선다면 같은 결론을 내릴 수 있을까요?`;
+                const p3 = `AI 시대의 윤리는 하나의 원칙으로 모든 문제를 풀기보다 가치들이 충돌할 때 이유를 설명하고 책임질 수 있는가에 달려 있습니다. 오늘의 선택과 그 근거를 기록해 두고, 새로운 기술을 만날 때마다 다시 점검하는 습관을 가져 보세요.`;
+
+                reportBox.innerText = [p1, p2, p3].join('\n\n');
+                loading.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }, 900);
+        }
+
+        function copyResults() {
+            const archetype = document.getElementById('archetype-title').innerText;
+            const pledge = document.getElementById('student-pledge').value;
+            const textToCopy = `[AI 윤리 수업 성찰 보고서]\n학생: ${studentInfo.school} ${studentInfo.name}\n윤리 유형: ${archetype}\n지표 - 공정성: ${stats.fairness}%, 안전성: ${stats.safety}%, 혁신성: ${stats.innovation}%, 신뢰도: ${stats.trust}%\n\n[나의 AI 윤리 선언문]\n${pledge || "(선언문 미작성)"}`;
+
+            const tempInput = document.createElement("textarea");
+            tempInput.value = textToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            showToast("수업 제출용 텍스트가 복사되었습니다!");
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
